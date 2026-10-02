@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:injectable/injectable.dart';
 import 'package:news_app/data/model/news_article_model.dart';
 import 'package:news_app/data/remote/api/news_data_source.dart';
 
@@ -8,6 +9,7 @@ abstract final class _ApiPath {
   static const int pageSize = 20;
 }
 
+@LazySingleton(as: NewsDataSource)
 class NewsDataSourceImpl implements NewsDataSource {
   const NewsDataSourceImpl({required this.dio});
 
@@ -16,6 +18,7 @@ class NewsDataSourceImpl implements NewsDataSource {
   @override
   Future<List<NewsArticleModel>> getEverythingArticles({
     required int page,
+    required String query,
   }) async {
     final fromDate = DateTime.now().subtract(const Duration(days: 29));
     final formattedFromDate =
@@ -23,7 +26,7 @@ class NewsDataSourceImpl implements NewsDataSource {
     final response = await dio.get(
       _ApiPath.everyThing,
       queryParameters: {
-        'q': 'football',
+        'q': query,
         'from': formattedFromDate,
         'sortBy': 'publishedAt',
         'page': page,

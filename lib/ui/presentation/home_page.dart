@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:news_app/domain/entity/news_article_entity.dart';
-import 'package:news_app/domain/repo/news_repository.dart';
 import 'package:news_app/ui/bloc/news_bloc.dart';
 import 'package:news_app/ui/bloc/news_event.dart';
 import 'package:news_app/ui/bloc/news_state.dart';
@@ -9,9 +8,9 @@ import 'package:news_app/ui/presentation/news_details_page.dart';
 import 'package:news_app/ui/presentation/widgets/article_tile.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.newsRepository});
+  const HomePage({super.key, required this.createNewsBloc});
 
-  final NewsRepository newsRepository;
+  final NewsBloc Function() createNewsBloc;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -34,8 +33,8 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: BlocProvider(
           create: (_) =>
-              NewsBloc(newsRepository: widget.newsRepository)
-                ..add(const GetEverythingEvent()),
+              widget.createNewsBloc()
+                ..add(const GetEverythingEvent(query: 'football')),
           child: BlocBuilder<NewsBloc, NewsState>(
             builder: (context, state) {
               return Column(
@@ -46,9 +45,14 @@ class _HomePageState extends State<HomePage> {
                     child: TextField(
                       controller: _searchController,
                       onChanged: (value) => setState(() => _query = value),
+                      onSubmitted: (_) => _search(context),
                       decoration: InputDecoration(
                         hintText: 'Поиск новостей',
-                        prefixIcon: const Icon(Icons.search),
+                        prefixIcon: IconButton(
+                          tooltip: 'Найти новости',
+                          onPressed: () => _search(context),
+                          icon: const Icon(Icons.search),
+                        ),
                         suffixIcon: _query.isEmpty
                             ? null
                             : IconButton(
@@ -56,6 +60,9 @@ class _HomePageState extends State<HomePage> {
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _query = '');
+                                  context.read<NewsBloc>().add(
+                                    const GetEverythingEvent(query: 'football'),
+                                  );
                                 },
                                 icon: const Icon(Icons.close),
                               ),
@@ -105,8 +112,9 @@ class _HomePageState extends State<HomePage> {
               Text(state.message, textAlign: TextAlign.center),
               const SizedBox(height: 12),
               TextButton.icon(
-                onPressed: () =>
-                    context.read<NewsBloc>().add(const GetEverythingEvent()),
+                onPressed: () => context.read<NewsBloc>().add(
+                  GetEverythingEvent(query: _query.trim()),
+                ),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Загрузить ещё раз'),
               ),
@@ -116,13 +124,8 @@ class _HomePageState extends State<HomePage> {
       );
     }
     if (state is NewsSuccess) {
-      final query = _query.trim().toLowerCase();
-      final articles = state.news.where((article) {
-        return query.isEmpty ||
-            article.title.toLowerCase().contains(query) ||
-            article.description.toLowerCase().contains(query) ||
-            article.author.toLowerCase().contains(query);
-      }).toList();
+      final query = _query.trim();
+      final articles = state.news;
 
       if (articles.isEmpty) {
         return Center(
@@ -153,7 +156,7 @@ class _HomePageState extends State<HomePage> {
               }, childCount: articles.length),
             ),
           ),
-          if (query.isEmpty && state.hasMore)
+          if (state.hasMore)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
@@ -197,5 +200,11 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => NewsDetailsPage(article: article),
       ),
     );
+  }
+
+  void _search(BuildContext context) {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    context.read<NewsBloc>().add(GetEverythingEvent(query: query));
   }
 }

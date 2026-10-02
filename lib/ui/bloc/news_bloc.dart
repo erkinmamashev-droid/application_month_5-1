@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:injectable/injectable.dart';
 import 'package:news_app/domain/repo/news_repository.dart';
 import 'package:news_app/ui/bloc/news_event.dart';
 import 'package:news_app/ui/bloc/news_state.dart';
 
+@injectable
 class NewsBloc extends Bloc<NewsEvent, NewsState> {
   NewsBloc({required this.newsRepository}) : super(NewsInitial()) {
     on<GetEverythingEvent>(_getEverythingArticles);
@@ -16,22 +18,25 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
   int _currentPage = 1;
   bool _hasMore = true;
   bool _isLoadingMore = false;
+  String _activeQuery = 'football';
 
   FutureOr<void> _getEverythingArticles(
     GetEverythingEvent event,
     Emitter<NewsState> emit,
   ) async {
+    _activeQuery = event.query;
     _currentPage = 1;
     _hasMore = true;
     emit(NewsLoading());
     try {
       final result = await newsRepository.getEverythingArticles(
         page: _currentPage,
+        query: _activeQuery,
       );
       _hasMore = result.length == _pageSize;
       emit(NewsSuccess(news: result, hasMore: _hasMore));
     } catch (_) {
-      emit(NewsFailure("Новостей нет"));
+      emit(NewsFailure('Не удалось загрузить новости. Попробуйте ещё раз.'));
     }
   }
 
@@ -53,7 +58,10 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
 
     final nextPage = _currentPage + 1;
     try {
-      final result = await newsRepository.getEverythingArticles(page: nextPage);
+      final result = await newsRepository.getEverythingArticles(
+        page: nextPage,
+        query: _activeQuery,
+      );
       _currentPage = nextPage;
       _hasMore = result.length == _pageSize;
       emit(
