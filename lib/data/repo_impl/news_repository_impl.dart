@@ -13,10 +13,12 @@ class NewsRepositoryImpl implements NewsRepository {
   Future<List<NewsArticleEntity>> getEverythingArticles({
     required int page,
     required String query,
+    String sortBy = 'publishedAt',
   }) async {
     final result = await dataSource.getEverythingArticles(
       page: page,
       query: query,
+      sortBy: sortBy,
     );
     return result.map((model) => model.fromModelToEntity()).toList();
   }

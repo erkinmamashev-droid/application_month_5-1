@@ -4,5 +4,6 @@ abstract class NewsDataSource {
   Future<List<NewsArticleModel>> getEverythingArticles({
     required int page,
     required String query,
+    String sortBy = 'publishedAt',
   });
 }

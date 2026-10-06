@@ -19,18 +19,26 @@ class NewsLoading extends NewsState {
 class NewsSuccess extends NewsState {
   const NewsSuccess({
     required this.news,
+    this.hotNews = const [],
     this.hasMore = true,
     this.isLoadingMore = false,
     this.loadMoreError,
   });
 
   final List<NewsArticleEntity> news;
+  final List<NewsArticleEntity> hotNews;
   final bool hasMore;
   final bool isLoadingMore;
   final String? loadMoreError;
 
   @override
-  List<Object?> get props => [news, hasMore, isLoadingMore, loadMoreError];
+  List<Object?> get props => [
+    news,
+    hotNews,
+    hasMore,
+    isLoadingMore,
+    loadMoreError,
+  ];
 }
 
 class NewsFailure extends NewsState {

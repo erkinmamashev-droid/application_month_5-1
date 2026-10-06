@@ -1,20 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:news_app/domain/entity/news_article_entity.dart';
 
-class NewsDetailsPage extends StatelessWidget {
-  const NewsDetailsPage({super.key, required this.article});
+class NewsDetailsPage extends StatefulWidget {
+  const NewsDetailsPage({
+    super.key,
+    required this.article,
+    required this.isFavorite,
+    required this.onToggleFavorite,
+  });
 
   final NewsArticleEntity article;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
+
+  @override
+  State<NewsDetailsPage> createState() => _NewsDetailsPageState();
+}
+
+class _NewsDetailsPageState extends State<NewsDetailsPage> {
+  late bool _isFavorite;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavorite = widget.isFavorite;
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final article = widget.article;
     final body = article.content.trim().isNotEmpty
         ? article.content.replaceAll(RegExp(r'\s*\[\+\d+ chars\]'), '')
         : article.description;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCFCFA),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _toggleFavorite,
+        backgroundColor: Colors.white,
+        foregroundColor: _isFavorite ? Colors.red : Colors.black87,
+        tooltip: _isFavorite ? 'Удалить из избранного' : 'Добавить в избранное',
+        child: Icon(
+          _isFavorite ? Icons.favorite : Icons.favorite_border,
+          size: 28,
+        ),
+      ),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -145,6 +176,11 @@ class NewsDetailsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _toggleFavorite() {
+    setState(() => _isFavorite = !_isFavorite);
+    widget.onToggleFavorite();
   }
 }
 

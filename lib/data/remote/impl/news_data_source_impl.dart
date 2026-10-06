@@ -4,7 +4,9 @@ import 'package:news_app/data/model/news_article_model.dart';
 import 'package:news_app/data/remote/api/news_data_source.dart';
 
 abstract final class _ApiPath {
-  static const String everyThing = "everything";
+  static const String everything = 'everything';
+  static const String fromDate = '2026-10-01';
+  static const String toDate = '2026-10-05';
   static const String apiKey = "9941da606ad2474c8a3c60939772cada";
   static const int pageSize = 20;
 }
@@ -19,16 +21,15 @@ class NewsDataSourceImpl implements NewsDataSource {
   Future<List<NewsArticleModel>> getEverythingArticles({
     required int page,
     required String query,
+    String sortBy = 'publishedAt',
   }) async {
-    final fromDate = DateTime.now().subtract(const Duration(days: 29));
-    final formattedFromDate =
-        '${fromDate.year}-${fromDate.month.toString().padLeft(2, '0')}-${fromDate.day.toString().padLeft(2, '0')}';
     final response = await dio.get(
-      _ApiPath.everyThing,
+      _ApiPath.everything,
       queryParameters: {
         'q': query,
-        'from': formattedFromDate,
-        'sortBy': 'publishedAt',
+        'from': _ApiPath.fromDate,
+        'to': _ApiPath.toDate,
+        'sortBy': sortBy,
         'page': page,
         'pageSize': _ApiPath.pageSize,
         'apiKey': _ApiPath.apiKey,

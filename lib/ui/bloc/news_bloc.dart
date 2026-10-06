@@ -29,12 +29,21 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     _hasMore = true;
     emit(NewsLoading());
     try {
-      final result = await newsRepository.getEverythingArticles(
-        page: _currentPage,
-        query: _activeQuery,
-      );
+      final results = await Future.wait([
+        newsRepository.getEverythingArticles(
+          page: _currentPage,
+          query: _activeQuery,
+        ),
+        newsRepository.getEverythingArticles(
+          page: 1,
+          query: _activeQuery,
+          sortBy: 'popularity',
+        ),
+      ]);
+      final result = results[0];
+      final hotNews = results[1];
       _hasMore = result.length == _pageSize;
-      emit(NewsSuccess(news: result, hasMore: _hasMore));
+      emit(NewsSuccess(news: result, hotNews: hotNews, hasMore: _hasMore));
     } catch (_) {
       emit(NewsFailure('Не удалось загрузить новости. Попробуйте ещё раз.'));
     }
@@ -51,6 +60,7 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
     emit(
       NewsSuccess(
         news: currentState.news,
+        hotNews: currentState.hotNews,
         hasMore: _hasMore,
         isLoadingMore: true,
       ),
@@ -65,12 +75,17 @@ class NewsBloc extends Bloc<NewsEvent, NewsState> {
       _currentPage = nextPage;
       _hasMore = result.length == _pageSize;
       emit(
-        NewsSuccess(news: [...currentState.news, ...result], hasMore: _hasMore),
+        NewsSuccess(
+          news: [...currentState.news, ...result],
+          hotNews: currentState.hotNews,
+          hasMore: _hasMore,
+        ),
       );
     } catch (_) {
       emit(
         NewsSuccess(
           news: currentState.news,
+          hotNews: currentState.hotNews,
           hasMore: _hasMore,
           loadMoreError: 'Не удалось загрузить новости. Попробуйте ещё раз.',
         ),

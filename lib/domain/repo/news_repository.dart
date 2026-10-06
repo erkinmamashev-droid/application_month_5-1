@@ -4,5 +4,6 @@ abstract class NewsRepository {
   Future<List<NewsArticleEntity>> getEverythingArticles({
     required int page,
     required String query,
+    String sortBy = 'publishedAt',
   });
 }

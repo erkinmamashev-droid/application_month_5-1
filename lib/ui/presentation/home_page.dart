@@ -4,13 +4,17 @@ import 'package:news_app/domain/entity/news_article_entity.dart';
 import 'package:news_app/ui/bloc/news_bloc.dart';
 import 'package:news_app/ui/bloc/news_event.dart';
 import 'package:news_app/ui/bloc/news_state.dart';
-import 'package:news_app/ui/presentation/news_details_page.dart';
 import 'package:news_app/ui/presentation/widgets/article_tile.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.createNewsBloc});
+  const HomePage({
+    super.key,
+    required this.createNewsBloc,
+    required this.onArticleTap,
+  });
 
   final NewsBloc Function() createNewsBloc;
+  final ValueChanged<NewsArticleEntity> onArticleTap;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -78,14 +82,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
-                    child: Text(
-                      'Новости',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
                   Expanded(child: _buildNewsContent(context, state)),
                 ],
               );
@@ -113,7 +109,9 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 12),
               TextButton.icon(
                 onPressed: () => context.read<NewsBloc>().add(
-                  GetEverythingEvent(query: _query.trim()),
+                  GetEverythingEvent(query: _query.trim().isEmpty
+                      ? 'football'
+                      : _query.trim()),
                 ),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Загрузить ещё раз'),
@@ -138,24 +136,29 @@ class _HomePageState extends State<HomePage> {
 
       return CustomScrollView(
         slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 18,
-                mainAxisSpacing: 24,
-                mainAxisExtent: 366,
+          if (state.hotNews.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _NewsSection(
+                title: 'Горячие новинки',
+                articles: state.hotNews.take(5).toList(),
+                onArticleTap: widget.onArticleTap,
               ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final article = articles[index];
-                return ArticleTile(
-                  article: article,
-                  onTap: () => _openDetails(context, article),
-                );
-              }, childCount: articles.length),
+            ),
+          SliverToBoxAdapter(
+            child: _NewsSection(
+              title: query.isEmpty ? 'Главные новости' : 'Результаты поиска',
+              articles: articles.take(5).toList(),
+              onArticleTap: widget.onArticleTap,
             ),
           ),
+          if (articles.length > 5)
+            SliverToBoxAdapter(
+              child: _NewsSection(
+                title: query.isEmpty ? 'Ещё новости' : 'Другие результаты',
+                articles: articles.skip(5).toList(),
+                onArticleTap: widget.onArticleTap,
+              ),
+            ),
           if (state.hasMore)
             SliverToBoxAdapter(
               child: Padding(
@@ -194,17 +197,60 @@ class _HomePageState extends State<HomePage> {
     return const SizedBox.shrink();
   }
 
-  void _openDetails(BuildContext context, NewsArticleEntity article) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => NewsDetailsPage(article: article),
-      ),
-    );
-  }
-
   void _search(BuildContext context) {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
     context.read<NewsBloc>().add(GetEverythingEvent(query: query));
+  }
+}
+
+class _NewsSection extends StatelessWidget {
+  const _NewsSection({
+    required this.title,
+    required this.articles,
+    required this.onArticleTap,
+  });
+
+  final String title;
+  final List<NewsArticleEntity> articles;
+  final ValueChanged<NewsArticleEntity> onArticleTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          SizedBox(
+            height: 390,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              scrollDirection: Axis.horizontal,
+              itemCount: articles.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 18),
+              itemBuilder: (context, index) {
+                final article = articles[index];
+                return SizedBox(
+                  width: 170,
+                  child: ArticleTile(
+                    article: article,
+                    onTap: () => onArticleTap(article),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
