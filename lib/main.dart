@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:news_app/core/di/injection.dart';
+import 'package:news_app/core/services/app_preferences.dart';
 import 'package:news_app/domain/entity/news_article_entity.dart';
 import 'package:news_app/ui/bloc/news_bloc.dart';
 import 'package:news_app/ui/presentation/favorite_page.dart';
 import 'package:news_app/ui/presentation/home_page.dart';
 import 'package:news_app/ui/presentation/news_details_page.dart';
 import 'package:news_app/ui/presentation/profile_page.dart';
+import 'package:news_app/ui/presentation/screens/auth_page.dart';
+import 'package:news_app/ui/presentation/screens/splash_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +23,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainPage(createNewsBloc: () => getIt<NewsBloc>()),
+      home: SplashPage(
+        homeBuilder: (_) => MainPage(
+          createNewsBloc: () => getIt<NewsBloc>(),
+        ),
+      ),
     );
   }
 }
@@ -50,7 +57,7 @@ class _MainPageState extends State<MainPage> {
             onArticleTap: _openArticle,
           ),
           FavoritePage(articles: _favorites, onArticleTap: _openArticle),
-          const ProfilePage(),
+          ProfilePage(onLogout: _logout),
         ],
       ),
       bottomNavigationBar: _BottomNavigationBar(
@@ -83,6 +90,21 @@ class _MainPageState extends State<MainPage> {
         _favorites.add(article);
       }
     });
+  }
+
+  Future<void> _logout() async {
+    await AppPreferences().setAuthenticated(false);
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => AuthPage(
+          homeBuilder: (_) => MainPage(
+            createNewsBloc: () => getIt<NewsBloc>(),
+          ),
+        ),
+      ),
+      (_) => false,
+    );
   }
 }
 
